@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Sales Prediction{% endblock %}
+{% block page_name %}Sales Prediction{% endblock %}
+{% block content %}
+<section class="page-heading"><div><div class="eyebrow">MACHINE LEARNING <span class="eyebrow-line"></span> FORECAST TOOL</div><h1>Predict your next sale<span class="title-period">.</span></h1><p class="page-subtitle">Enter a few business details to estimate expected product demand and revenue.</p></div></section>
+
+<div class="prediction-layout">
+  <section class="panel prediction-form-panel">
+    <div class="panel-heading form-panel-heading"><div><h2>Sales forecast inputs</h2><p>All fields are required for this prediction.</p></div><span class="step-pill"><span>01</span> INPUTS</span></div>
+    <form method="post" action="{{ url_for('predict') }}" class="prediction-form" id="predictionForm">
+      <div class="form-section-label"><span class="form-section-number">1</span><div><strong>Product details</strong><small>Choose the product category and forecast date.</small></div></div>
+      <div class="form-grid">
+        <div class="form-field"><label for="prediction_date">Prediction date <span class="required-star">*</span></label><input type="date" id="prediction_date" name="prediction_date" value="{{ form_values.prediction_date }}" required><small class="field-help">Date determines weekday and seasonality.</small></div>
+        <div class="form-field"><label for="product_category">Product category <span class="required-star">*</span></label><select id="product_category" name="product_category" required>{% for category in categories %}<option value="{{ category }}" {% if form_values.product_category == category %}selected{% endif %}>{{ category }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="form-divider"></div>
+      <div class="form-section-label"><span class="form-section-number">2</span><div><strong>Pricing & promotion</strong><small>Specify product pricing and marketing investment.</small></div></div>
+      <div class="form-grid">
+        <div class="form-field"><label for="unit_price">Unit price (₹) <span class="required-star">*</span></label><div class="input-prefix-wrap"><span>₹</span><input type="number" id="unit_price" name="unit_price" min="0.01" max="10000000" step="0.01" value="{{ form_values.unit_price }}" required></div><small class="field-help">Selling price before discount.</small></div>
+        <div class="form-field"><label for="discount_pct">Discount (%) <span class="required-star">*</span></label><div class="input-suffix-wrap"><input type="number" id="discount_pct" name="discount_pct" min="0" max="100" step="0.1" value="{{ form_values.discount_pct }}" required><span>%</span></div><small class="field-help">Enter a value from 0 to 100.</small></div>
+        <div class="form-field form-field-full"><label for="marketing_spend">Marketing spend (₹) <span class="required-star">*</span></label><div class="input-prefix-wrap"><span>₹</span><input type="number" id="marketing_spend" name="marketing_spend" min="0" max="100000000" step="0.01" value="{{ form_values.marketing_spend }}" required></div><small class="field-help">Estimated campaign or promotion spend for this forecast.</small></div>
+      </div>
+      <div class="form-note"><span>ⓘ</span><p>The trained Random Forest model uses category, price, discount, marketing spend, weekday and month to estimate units sold.</p></div>
+      <div class="form-actions"><button type="reset" class="btn btn-secondary" id="resetForm">Reset fields</button><button type="submit" class="btn btn-primary btn-predict" id="submitPrediction"><span>✳</span> Generate prediction <span class="button-arrow">→</span></button></div>
+    </form>
+  </section>
+
+  <aside class="prediction-aside">
+    {% if result %}
+    <section class="result-card">
+      <div class="result-topline"><span class="result-icon">✓</span><span class="result-status">PREDICTION SAVED</span><span class="result-sparkle">✦</span></div>
+      <p class="result-label">Estimated sales revenue</p><div class="result-revenue">{{ result.estimated_revenue|inr }}</div>
+      <div class="result-subtitle">Expected revenue after discount</div>
+      <div class="result-stat-grid"><div><span>Predicted units</span><strong>{{ result.predicted_units }}</strong></div><div><span>Product category</span><strong>{{ result.product_category }}</strong></div></div>
+      <div class="result-detail-list"><div><span>Forecast date</span><strong>{{ result.selected_date }}</strong></div><div><span>Unit price</span><strong>{{ result.unit_price|inr }}</strong></div><div><span>Discount</span><strong>{{ '%.1f'|format(result.discount_pct) }}%</strong></div><div><span>Marketing spend</span><strong>{{ result.marketing_spend|inr }}</strong></div></div>
+      <div class="result-formula"><span>Revenue calculation</span><p>{{ result.predicted_units }} units × {{ result.unit_price|inr }} × (1 − {{ '%.1f'|format(result.discount_pct) }}%)</p></div>
+      <a href="{{ url_for('history') }}" class="btn btn-result">View prediction history <span>→</span></a>
+    </section>
+    {% else %}
+    <section class="forecast-preview-card"><div class="preview-decoration preview-decoration-one"></div><div class="preview-decoration preview-decoration-two"></div><div class="preview-icon"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 35 18 25l7 5 15-17"/><path d="M30 13h10v10"/><path d="M8 40h32"/></svg></div><span class="preview-eyebrow">YOUR FORECAST, SIMPLIFIED</span><h2>Turn inputs into insights.</h2><p>Use your product and marketing details to generate an ML-powered demand estimate.</p><div class="preview-mini-chart"><span style="height:30%"></span><span style="height:48%"></span><span style="height:40%"></span><span style="height:67%"></span><span style="height:56%"></span><span style="height:80%"></span><span style="height:72%"></span><span style="height:100%"></span><span style="height:85%"></span><span style="height:92%"></span><span style="height:76%"></span><span style="height:100%"></span></div><div class="preview-bottom"><span><span class="mini-dot cyan-dot"></span> Historical patterns</span><span><span class="mini-dot blue-dot"></span> Model estimate</span></div></section>
+    {% endif %}
+    <section class="help-card"><div class="help-icon">✦</div><div><strong>How to get a useful estimate</strong><p>Try different discounts or marketing spend values for the same category and compare the model's estimated demand. Results are illustrative because the model uses synthetic data.</p></div></section>
+  </aside>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const form = document.getElementById('predictionForm');
+  const submit = document.getElementById('submitPrediction');
+  if (form && submit) form.addEventListener('submit', () => { submit.disabled = true; submit.innerHTML = '<span class="spinner"></span> Calculating…'; });
+  const reset = document.getElementById('resetForm');
+  if (reset && form) reset.addEventListener('click', () => setTimeout(() => { document.getElementById('product_category').value = 'Electronics'; }, 0));
+</script>
+{% endblock %}

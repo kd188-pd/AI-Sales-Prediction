@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101c3b">
+  <meta name="description" content="AI-based sales prediction and business analytics dashboard for an academic project.">
+  <title>{% block title %}Dashboard{% endblock %} · SalesPilot AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="{{ url_for('dashboard') }}" aria-label="SalesPilot AI home">
+        <span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 23.5 12 16l5 4 10-12"/><path d="M20.5 8H27v6.5"/><path d="M5 27h22"/></svg></span>
+        <span class="brand-copy"><strong>SalesPilot<span> AI</span></strong><small>BUSINESS INTELLIGENCE</small></span>
+      </a>
+      <div class="sidebar-label">WORKSPACE</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}"><span class="nav-icon">▦</span><span>Dashboard</span></a>
+        <a class="nav-link {% if request.endpoint == 'predict' %}active{% endif %}" href="{{ url_for('predict') }}"><span class="nav-icon">✳</span><span>Sales Prediction</span><span class="nav-arrow">›</span></a>
+        <a class="nav-link {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }}"><span class="nav-icon">◷</span><span>Prediction History</span></a>
+        <a class="nav-link {% if request.endpoint == 'about' %}active{% endif %}" href="{{ url_for('about') }}"><span class="nav-icon">ⓘ</span><span>About Project</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-tip-icon">✦</div>
+        <div class="sidebar-tip-title">Make smarter decisions</div>
+        <p>Use historical patterns to explore possible sales outcomes.</p>
+        <a href="{{ url_for('predict') }}">Try a prediction <span>↗</span></a>
+      </div>
+      <div class="sidebar-footer"><span class="status-dot"></span> Local demo environment</div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <button type="button" class="mobile-menu" id="mobileMenu" aria-label="Toggle navigation">☰</button>
+        <div class="breadcrumb"><span>Workspace</span><span class="crumb-divider">/</span><strong>{% block page_name %}Dashboard{% endblock %}</strong></div>
+        <div class="topbar-right">
+          <span class="demo-pill" title="Dashboard charts use saved predictions only"><span></span> HISTORY ONLY</span>
+          <div class="avatar">SP</div>
+        </div>
+      </header>
+
+      <main class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack" aria-live="polite">
+              {% for category, message in messages %}
+                <div class="flash flash-{{ category }}"><span class="flash-icon">{% if category == 'success' %}✓{% else %}!{% endif %}</span><span>{{ message }}</span><button type="button" class="flash-close" aria-label="Dismiss message" onclick="this.parentElement.remove()">×</button></div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+        <footer class="page-footer"><span>© {{ current_year }} SalesPilot AI</span><span>Academic project · Estimates are not guaranteed results</span></footer>
+      </main>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const button = document.getElementById('mobileMenu');
+      const sidebar = document.getElementById('sidebar');
+      if (button && sidebar) button.addEventListener('click', () => sidebar.classList.toggle('sidebar-open'));
+      document.addEventListener('click', (event) => {
+        if (sidebar && sidebar.classList.contains('sidebar-open') && !sidebar.contains(event.target) && event.target !== button) sidebar.classList.remove('sidebar-open');
+      });
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

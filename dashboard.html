@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_name %}Dashboard{% endblock %}
+{% block content %}
+<section class="page-heading heading-with-action">
+  <div>
+    <div class="eyebrow">OVERVIEW <span class="eyebrow-line"></span> SAVED FORECASTS</div>
+    <h1>Good insights start here<span class="title-period">.</span></h1>
+    <p class="page-subtitle">Your dashboard updates only with predictions you generate and save to history.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('predict') }}"><span>＋</span> Predict Sales</a>
+</section>
+
+<div class="notice-banner">
+  <span class="notice-symbol">i</span>
+  <div>
+    <strong>Dashboard uses saved predictions only</strong>
+    <span>Sample training records are not displayed here. Create a forecast and save it to Prediction History to populate these insights.</span>
+  </div>
+</div>
+
+<section class="kpi-grid" aria-label="Saved prediction summary">
+  <article class="kpi-card"><div class="kpi-top"><span class="kpi-label">Total estimated revenue</span><span class="kpi-icon icon-blue">₹</span></div><div class="kpi-value">{% if prediction_count %}{{ total_estimated_revenue|inr }}{% else %}—{% endif %}</div><div class="kpi-foot"><span class="mini-dot blue-dot"></span><span>Sum of saved forecasts</span></div></article>
+  <article class="kpi-card"><div class="kpi-top"><span class="kpi-label">Saved predictions</span><span class="kpi-icon icon-violet">▤</span></div><div class="kpi-value">{% if prediction_count %}{{ '{:,}'.format(prediction_count) }}{% else %}—{% endif %}</div><div class="kpi-foot"><span class="mini-dot violet-dot"></span><span>Records in prediction history</span></div></article>
+  <article class="kpi-card"><div class="kpi-top"><span class="kpi-label">Average estimate</span><span class="kpi-icon icon-green">↗</span></div><div class="kpi-value">{% if prediction_count %}{{ average_estimated_revenue|inr }}{% else %}—{% endif %}</div><div class="kpi-foot"><span class="mini-dot green-dot"></span><span>Average per saved forecast</span></div></article>
+  <article class="kpi-card"><div class="kpi-top"><span class="kpi-label">Predicted units</span><span class="kpi-icon icon-amber">▥</span></div><div class="kpi-value">{% if prediction_count %}{{ '{:,}'.format(total_predicted_units) }}{% else %}—{% endif %}</div><div class="kpi-foot"><span class="mini-dot amber-dot"></span><span>Units across saved forecasts</span></div></article>
+  <article class="kpi-card"><div class="kpi-top"><span class="kpi-label">Categories tested</span><span class="kpi-icon icon-cyan">✳</span></div><div class="kpi-value">{% if prediction_count %}{{ categories_tested }}{% else %}—{% endif %}</div><div class="kpi-foot"><span class="mini-dot cyan-dot"></span><span>Unique categories in history</span></div></article>
+</section>
+
+<section class="charts-grid">
+  <article class="panel chart-panel chart-panel-wide">
+    <div class="panel-heading"><div><h2>Saved forecast performance</h2><p>Estimated revenue grouped by the month each forecast was saved</p></div><span class="chart-tag">HISTORY ONLY</span></div>
+    <div class="chart-wrap chart-wrap-large"><canvas id="monthlyChart" aria-label="Monthly saved forecast revenue chart"></canvas><div class="chart-empty" id="monthlyEmpty">Save a prediction to populate this chart.</div></div>
+  </article>
+  <article class="panel chart-panel">
+    <div class="panel-heading"><div><h2>Forecasts by category</h2><p>Saved estimated revenue by category</p></div><span class="panel-more">···</span></div>
+    <div class="chart-wrap chart-wrap-donut"><canvas id="categoryChart" aria-label="Saved forecast revenue by category chart"></canvas><div class="chart-empty" id="categoryEmpty">Your saved category totals will appear here.</div></div>
+    <div class="chart-legend-note"><span class="legend-dot"></span> Saved estimates only</div>
+  </article>
+</section>
+
+<section class="lower-grid">
+  <article class="panel chart-panel comparison-panel">
+    <div class="panel-heading"><div><h2>Predicted units by forecast</h2><p>Latest saved predictions, shown oldest to newest</p></div><span class="chart-tag">HISTORY ONLY</span></div>
+    <div class="chart-wrap chart-wrap-medium"><canvas id="forecastChart" aria-label="Predicted units in saved forecasts chart"></canvas><div class="chart-empty" id="forecastEmpty">No saved predictions to compare yet.</div></div>
+  </article>
+  <article class="panel recent-panel">
+    <div class="panel-heading"><div><h2>Latest saved predictions</h2><p>Forecasts already stored in your history</p></div><a class="text-link" href="{{ url_for('history') }}">View all <span>→</span></a></div>
+    {% if recent %}
+    <div class="table-scroll"><table class="data-table recent-table"><thead><tr><th>Category</th><th>Predicted units</th><th>Est. revenue</th></tr></thead><tbody>{% for item in recent %}<tr><td><span class="category-cell"><span class="category-avatar cat-{{ loop.index0 % 5 }}">{{ item.product_category[:1] }}</span><span>{{ item.product_category }}</span></span></td><td><strong>{{ item.predicted_units }}</strong></td><td class="revenue-cell">{{ item.estimated_revenue|inr }}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}
+    <div class="empty-state"><div class="empty-state-icon">↗</div><strong>No saved predictions yet</strong><p>Generate a forecast and save it. Only then will your own results appear in this dashboard.</p><a class="btn btn-soft" href="{{ url_for('predict') }}">Create prediction <span>→</span></a></div>
+    {% endif %}
+  </article>
+</section>
+
+<div class="dashboard-bottom"><div class="bottom-note"><span class="bottom-note-icon">✦</span><div><strong>{% if prediction_count %}Keep exploring your forecasts{% else %}Your dashboard is ready{% endif %}</strong><span>{% if prediction_count %}Create another prediction to build up your personal history.{% else %}This page will stay empty until you save your first prediction.{% endif %}</span></div></div><a class="btn btn-primary" href="{{ url_for('predict') }}">Open prediction tool <span>→</span></a></div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const monthlyLabels = {{ monthly_labels|tojson }};
+  const monthlySales = {{ monthly_sales|tojson }};
+  const categoryLabels = {{ category_labels|tojson }};
+  const categorySales = {{ category_sales|tojson }};
+  const forecastLabels = {{ forecast_labels|tojson }};
+  const forecastUnits = {{ forecast_units|tojson }};
+  const formatINR = value => '₹' + Number(value).toLocaleString('en-IN', {maximumFractionDigits: 0});
+  const colors = ['#5368ed', '#23b6a8', '#f5ad51', '#9a7cf7', '#ed7798'];
+
+  function showEmptyIfNoChartData(canvasId, emptyId, data) {
+    const empty = document.getElementById(emptyId);
+    const canvas = document.getElementById(canvasId);
+    if (!data || !data.length || typeof Chart === 'undefined') {
+      if (empty) empty.style.display = 'flex';
+      if (canvas) canvas.style.display = 'none';
+      return false;
+    }
+    if (empty) empty.style.display = 'none';
+    return true;
+  }
+
+  if (typeof Chart !== 'undefined') {
+    Chart.defaults.font.family = "'DM Sans', sans-serif";
+    Chart.defaults.color = '#7d879d';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+
+    if (showEmptyIfNoChartData('monthlyChart', 'monthlyEmpty', monthlySales)) {
+      new Chart(document.getElementById('monthlyChart'), {
+        type: 'line',
+        data: {labels: monthlyLabels, datasets: [{label: 'Saved estimated revenue', data: monthlySales, borderColor: '#5368ed', backgroundColor: 'rgba(83,104,237,.10)', fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5, borderWidth: 2.5}]},
+        options: {responsive: true, maintainAspectRatio: false, interaction: {intersect: false, mode: 'index'}, plugins: {legend: {display: false}, tooltip: {callbacks: {label: ctx => ' ' + formatINR(ctx.parsed.y)}}}, scales: {x: {grid: {display: false}, border: {display: false}, ticks: {maxTicksLimit: 7}}, y: {beginAtZero: true, grid: {color: '#eef1f7'}, border: {display: false}, ticks: {callback: val => val >= 100000 ? '₹' + (val/100000).toFixed(1) + 'L' : '₹' + (val/1000).toFixed(0) + 'k'}}}}
+      });
+    }
+
+    if (showEmptyIfNoChartData('categoryChart', 'categoryEmpty', categorySales)) {
+      new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {labels: categoryLabels, datasets: [{data: categorySales, backgroundColor: colors, borderWidth: 0, hoverOffset: 5, spacing: 3, borderRadius: 4}]},
+        options: {responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: {legend: {position: 'bottom', labels: {padding: 14, boxWidth: 8, boxHeight: 8, font: {size: 10}}}, tooltip: {callbacks: {label: ctx => ' ' + ctx.label + ': ' + formatINR(ctx.parsed)}}}}
+      });
+    }
+
+    if (showEmptyIfNoChartData('forecastChart', 'forecastEmpty', forecastUnits)) {
+      new Chart(document.getElementById('forecastChart'), {
+        type: 'bar',
+        data: {labels: forecastLabels, datasets: [{label: 'Predicted units', data: forecastUnits, backgroundColor: '#5368ed', borderRadius: 5, maxBarThickness: 26}]},
+        options: {responsive: true, maintainAspectRatio: false, plugins: {legend: {display: false}, tooltip: {mode: 'index', intersect: false}}, scales: {x: {grid: {display: false}, border: {display: false}, ticks: {maxRotation: 0, autoSkip: true, maxTicksLimit: 6}}, y: {beginAtZero: true, grid: {color: '#eef1f7'}, border: {display: false}}}}
+      });
+    }
+  } else {
+    ['monthlyEmpty', 'categoryEmpty', 'forecastEmpty'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'flex'; });
+  }
+</script>
+{% endblock %}
