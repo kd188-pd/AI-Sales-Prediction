@@ -1,0 +1,1 @@
+/* Chart rendering is initialized in dashboard.html using values from Flask. */
